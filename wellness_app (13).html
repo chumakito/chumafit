@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chumafit AI</title>
+<style id="theme-style"></style>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:#fff;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:0 0 16px;display:none}
+.screen.active{display:block}
+.nav{padding-bottom:env(safe-area-inset-bottom);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+.nb{flex:1;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:#666;font-size:10px;cursor:pointer}
+.nb.active{color:var(--accent)}
+.nb svg{width:22px;height:22px}
+.hdr{padding:16px 16px 12px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.hdr h1{font-size:20px;font-weight:700}
+.hdr p{font-size:12px;color:#aaa;margin-top:2px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:10px 14px 0;border:1px solid var(--border)}
+.card h3{font-size:13px;font-weight:600;margin-bottom:10px;color:#aaa}
+.hgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:8px}
+.hd{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;border:1px solid var(--border);background:var(--bg);color:#555}
+.hd.done{background:var(--accent);border-color:var(--accent);color:#fff}
+.hd.today{border-color:var(--accent);color:var(--accent)}
+.pbar{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;margin:6px 0}
+.pf{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
+.hrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.hrow:last-child{border:none}
+.hck{width:24px;height:24px;border-radius:50%;border:2px solid #555;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s}
+.hck.done{background:var(--accent);border-color:var(--accent)}
+.hn{flex:1;font-size:13px}
+.hbtn{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 3px;opacity:.7}
+.add-btn{width:100%;padding:10px;background:var(--bg);border:2px dashed var(--border);border-radius:10px;color:#888;font-size:13px;cursor:pointer;margin-top:8px}
+.day-btn{width:calc(100% - 28px);margin:10px 14px 0;padding:13px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.day-btn:disabled{opacity:.35;cursor:not-allowed}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.bs{background:var(--bg);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border)}
+.bs .v{font-size:22px;font-weight:700;color:var(--accent)}
+.bs .l{font-size:10px;color:#aaa;margin-top:1px}
+.dbar{height:9px;background:var(--bg);border-radius:5px;overflow:hidden;margin:7px 0}
+.df{height:100%;border-radius:5px;transition:width .4s}
+.df.pos{background:#4ade80}.df.neg{background:#f87171}
+.bdg{padding:2px 8px;border-radius:7px;font-size:11px;font-weight:600}
+.bdg.pos{background:#14532d;color:#4ade80}.bdg.neg{background:#450a0a;color:#f87171}
+.chat-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:260px;overflow-y:auto}
+.msg{max-width:85%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.user{background:var(--border);align-self:flex-end;border-bottom-right-radius:3px}
+.msg.ai{background:var(--bg);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:3px}
+.msg.ai .kcal{font-size:20px;font-weight:700;color:var(--accent);display:block;margin:4px 0}
+.chat-input-row{display:flex;gap:8px}
+.chat-inp{flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:13px}
+.chat-inp:focus{outline:none;border-color:var(--accent)}
+.chat-send{padding:10px 14px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-size:18px;cursor:pointer;font-weight:700}
+.add-log-btn{width:100%;padding:9px;background:var(--border);border:1px solid var(--accent);border-radius:9px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:6px}
+.cam-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.ai-box{background:var(--bg);border-radius:10px;padding:12px;margin-top:8px;display:none;border:1px solid var(--border)}
+.ai-box.show{display:block}
+.pill{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
+.pp{background:#1e3a5f;color:#60a5fa}.pc{background:#3d2b00;color:#fbbf24}.pf{background:#3d1a1a;color:#f87171}
+.log-add-btn{width:100%;padding:9px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+.food-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.food-item:last-child{border:none}
+.wglass{width:55px;height:95px;border:3px solid var(--accent);border-radius:0 0 12px 12px;border-top:none;position:relative;overflow:hidden}
+.wfill{position:absolute;bottom:0;left:0;right:0;background:var(--accent);opacity:.7;transition:height .5s}
+.wbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+.wbtn{padding:9px;background:var(--bg);border:1px solid var(--accent);border-radius:9px;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer}
+/* settings */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border:none}
+.setting-label{font-size:14px;font-weight:500}
+.setting-sub{font-size:11px;color:#888;margin-top:2px}
+.color-pick{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);cursor:pointer;padding:0;background:none}
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.theme-btn{padding:10px 6px;border-radius:10px;border:2px solid transparent;cursor:pointer;font-size:11px;font-weight:600;text-align:center}
+.theme-btn.active{border-color:var(--accent)}
+.toggle{width:44px;height:24px;background:#555;border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle-knob{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.toggle.on .toggle-knob{left:22px}
+.deficit-input{width:80px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:13px;text-align:center}
+.deficit-input:focus{outline:none;border-color:var(--accent)}
+/* modal */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center}
+.ov.show{display:flex}
+.modal{background:var(--card);border-radius:14px;padding:18px;width:calc(100% - 48px);max-width:320px;border:1px solid var(--border)}
+.modal h3{font-size:15px;margin-bottom:10px}
+.modal input{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:13px;margin-bottom:10px}
+.modal input:focus{outline:none;border-color:var(--accent)}
+.mbtns{display:flex;gap:8px}
+.mbtns button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.mok{background:var(--accent);border:none;color:#fff}
+.mno{background:none;border:1px solid var(--border);color:#aaa}
+input[type=file]{display:none}
+.img-prev{width:100%;border-radius:10px;margin-bottom:8px;display:none}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;animation:d .8s infinite;margin:0 2px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes d{0%,80%,100%{opacity:.2}40%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="screens">
+
+<!-- HABITS -->
+<div class="screen active" id="s-habits">
+  <div class="hdr"><h1 id="app-title">Chumafit AI</h1><p id="today-lbl"></p></div>
+  <div class="card" id="medal-card" style="display:none">
+    <div style="text-align:center;padding:12px">
+      <div style="font-size:50px">🥇</div>
+      <div style="font-size:17px;font-weight:700;color:var(--accent);margin-top:6px">¡21 días completados!</div>
+      <div style="font-size:12px;color:#aaa;margin-top:4px">Formaste un hábito. ¡Increíble!</div>
+    </div>
+  </div>
+  <div class="card" id="prog-card">
+    <h3>Reto 21 días</h3>
+    <div class="hgrid" id="hgrid"></div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="font-size:11px;color:#888">Día <span id="cur-day">1</span> de 21</span>
+      <span id="cur-pct" style="font-size:11px;color:var(--accent);font-weight:600">0%</span>
+    </div>
+    <div class="pbar"><div class="pf" id="mpbar" style="width:0%"></div></div>
+  </div>
+  <div class="card">
+    <h3>Hábitos de hoy</h3>
+    <div id="hlist"></div>
+    <button class="add-btn" onclick="openModal()">+ Agregar hábito</button>
+  </div>
+  <button class="day-btn" id="day-btn" onclick="completeDay()">Completar día</button>
+</div>
+
+<!-- CALORIES -->
+<div class="screen" id="s-calories">
+  <div class="hdr"><h1>Calorías</h1></div>
+  <div class="card">
+    <h3>Balance del día</h3>
+    <div class="bgrid">
+      <div class="bs"><div class="v" id="cal-in">0</div><div class="l">Consumidas</div></div>
+      <div class="bs"><div class="v" id="cal-out">0</div><div class="l">Quemadas</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#aaa">Déficit calórico</span>
+      <span id="def-bdg" class="bdg pos">+0 kcal</span>
+    </div>
+    <div class="dbar"><div class="df pos" id="def-fill" style="width:0%"></div></div>
+    <div style="font-size:10px;color:#888;text-align:center">Meta: <span id="deficit-goal-lbl">500</span> kcal de déficit/día</div>
+  </div>
+  <div class="card">
+    <h3>💬 Calcular calorías con IA</h3>
+    <div class="chat-wrap" id="chat-wrap">
+      <div class="msg ai">¡Hola! Dime qué comiste y te calculo las calorías. Ej: <em>"me comí un pan con mantequilla"</em></div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-inp" id="chat-inp" type="text" placeholder="Ej: 2 huevos fritos con tostadas..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()">→</button>
+    </div>
+  </div>
+  <div class="card">
+    <button class="cam-btn" onclick="document.getElementById('food-inp').click()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Fotografiar comida
+    </button>
+    <input type="file" id="food-inp" accept="image/*" capture="environment" onchange="analyzePhoto(event)">
+    <img id="food-prev" class="img-prev">
+    <div class="ai-box" id="ai-box"><div id="ai-body"></div></div>
+    <div id="food-log" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h3>🔥 Calorías quemadas</h3>
+    <p style="font-size:12px;color:#aaa;margin-bottom:12px">Abre Samsung Health, mira tus calorías del día e ingrésalas aquí.</p>
+    <button onclick="window.location.href='samsunghealth://main'" style="width:100%;padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Abrir Samsung Health
+    </button>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="number" id="manual-cal" placeholder="Ej: 1238" style="flex:1;padding:12px;background:var(--bg);border:1px solid var(--accent);border-radius:10px;color:#fff;font-size:16px;font-weight:600">
+      <button onclick="setManualCal()" style="padding:12px 18px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer">✓</button>
+    </div>
+    <div style="font-size:11px;color:#888;text-align:center">Actual: <span id="cal-out-lbl" style="color:var(--accent);font-weight:600">0</span> kcal quemadas hoy</div>
+  </div>
+</div>
+
+<!-- WATER -->
+<div class="screen" id="s-water">
+  <div class="hdr"><h1>Hidratación</h1><p>Meta: <span id="w-goal-lbl">2000 ml</span></p></div>
+  <div class="card" style="text-align:center">
+    <div style="display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:14px 0">
+      <div class="wglass"><div class="wfill" id="wfill" style="height:0%"></div></div>
+      <div>
+        <div style="font-size:28px;font-weight:700;color:var(--accent)" id="wpct">0%</div>
+        <div style="font-size:11px;color:#aaa">completado</div>
+      </div>
+    </div>
+    <div style="font-size:24px;font-weight:700;color:var(--accent)"><span id="wcurr">0</span> ml</div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:4px">de <span id="wgoal">2000</span> ml</div>
+    <div class="wbtns">
+      <button class="wbtn" onclick="addW(150)">+150ml</button>
+      <button class="wbtn" onclick="addW(250)">+250ml</button>
+      <button class="wbtn" onclick="addW(500)">+500ml</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <span style="font-size:12px;color:#aaa">Meta:</span>
+      <input type="range" min="1000" max="4000" step="250" id="wslider" value="2000" style="flex:1;accent-color:var(--accent)" oninput="setWGoal(+this.value)">
+      <span style="font-size:11px;font-weight:600;color:var(--accent);min-width:46px" id="wslider-lbl">2000ml</span>
+    </div>
+    <div class="pbar"><div class="pf" id="wpbar" style="width:0%"></div></div>
+    <div id="wlog" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;justify-content:center"></div>
+    <button onclick="resetW()" style="width:100%;padding:9px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:#888;font-size:12px;cursor:pointer;margin-top:8px">Reiniciar</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="s-settings">
+  <div class="hdr"><h1>Ajustes</h1></div>
+
+  <div class="card">
+    <h3>Apariencia</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Color principal</div><div class="setting-sub">Color de resaltes y botones</div></div>
+      <input type="color" class="color-pick" id="accent-pick" value="#F59314" oninput="setAccent(this.value)">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Color de fondo</div><div class="setting-sub">Fondo principal de la app</div></div>
+      <input type="color" class="color-pick" id="bg-pick" value="#1a1f0e" oninput="setBg(this.value)">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Color de tarjetas</div><div class="setting-sub">Fondo de las tarjetas</div></div>
+      <input type="color" class="color-pick" id="card-pick" value="#2a3015" oninput="setCard(this.value)">
+    </div>
+    <div class="setting-sub" style="margin-top:8px">Temas predefinidos:</div>
+    <div class="theme-grid">
+      <button class="theme-btn active" onclick="setTheme('forest')" style="background:#2a3015;color:#F59314">🌿 Forest</button>
+      <button class="theme-btn" onclick="setTheme('dark')" style="background:#1a1a2e;color:#7c6fcd">🌙 Dark</button>
+      <button class="theme-btn" onclick="setTheme('ocean')" style="background:#0a1628;color:#60a5fa">🌊 Ocean</button>
+      <button class="theme-btn" onclick="setTheme('fire')" style="background:#1a0a0a;color:#f97316">🔥 Fire</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Nombre de la app</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="text" id="app-name-inp" placeholder="Chumafit AI" style="flex:1;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:13px">
+      <button onclick="setAppName()" style="padding:9px 14px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:13px;cursor:pointer">OK</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Metas</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Meta de déficit calórico</div><div class="setting-sub">kcal de déficit diario</div></div>
+      <input type="number" class="deficit-input" id="deficit-inp" value="500" onchange="setDeficitGoal(+this.value)">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Meta de agua</div><div class="setting-sub">ml por día</div></div>
+      <input type="number" class="deficit-input" id="water-goal-inp" value="2000" onchange="setWGoal(+this.value)">
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Datos</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Reiniciar calorías del día</div><div class="setting-sub">Borra el registro de hoy</div></div>
+      <button onclick="resetCal()" style="padding:7px 12px;background:var(--bg);border:1px solid #f87171;border-radius:8px;color:#f87171;font-size:12px;cursor:pointer">Reiniciar</button>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Reiniciar hábitos</div><div class="setting-sub">Borra el progreso de 21 días</div></div>
+      <button onclick="resetHabits()" style="padding:7px 12px;background:var(--bg);border:1px solid #f87171;border-radius:8px;color:#f87171;font-size:12px;cursor:pointer">Reiniciar</button>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Borrar todo</div><div class="setting-sub">Restablece la app completa</div></div>
+      <button onclick="resetAll()" style="padding:7px 12px;background:#450a0a;border:1px solid #f87171;border-radius:8px;color:#f87171;font-size:12px;cursor:pointer">Borrar todo</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Acerca de</h3>
+    <div style="font-size:13px;color:#aaa;line-height:1.8">
+      <div>📱 <strong style="color:#fff">Chumafit AI</strong> v2.0</div>
+      <div>🤖 IA: Llama 3.3 via OpenRouter</div>
+      <div>☁️ Proxy: Cloudflare Workers</div>
+      <div>🌐 Hosting: GitHub Pages</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nb active" id="nb-habits" onclick="goTo('habits')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Hábitos
+  </button>
+  <button class="nb" id="nb-calories" onclick="goTo('calories')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Calorías
+  </button>
+  <button class="nb" id="nb-water" onclick="goTo('water')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+    Agua
+  </button>
+  <button class="nb" id="nb-settings" onclick="goTo('settings')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Ajustes
+  </button>
+</nav>
+
+<!-- MODAL -->
+<div class="ov" id="modal-ov">
+  <div class="modal">
+    <h3 id="modal-title">Nuevo hábito</h3>
+    <input type="text" id="modal-inp" placeholder="Ej: Ejercicio 30 min">
+    <div class="mbtns">
+      <button class="mno" onclick="closeModal()">Cancelar</button>
+      <button class="mok" onclick="confirmModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROXY   = "https://chumafit2.maty-guzman-cerda.workers.dev";
+const FIT_CLI = "648513421340-07qtv535te8cuguhend3g5jj607vd018.apps.googleusercontent.com";
+
+const THEMES = {
+  forest: { accent:'#F59314', bg:'#1a1f0e', card:'#2a3015', border:'#43521D' },
+  dark:   { accent:'#7c6fcd', bg:'#0f0f1a', card:'#1a1a2e', border:'#2a2a4a' },
+  ocean:  { accent:'#60a5fa', bg:'#0a1628', card:'#0f2744', border:'#1e3a5f' },
+  fire:   { accent:'#f97316', bg:'#1a0a0a', card:'#2d1010', border:'#5a1f1f' }
+};
+
+let S = {
+  habits:      JSON.parse(localStorage.getItem('h2')||'[{"id":1,"name":"Ejercicio 30 min","done":false},{"id":2,"name":"Meditación","done":false},{"id":3,"name":"Leer 20 páginas","done":false}]'),
+  days:        JSON.parse(localStorage.getItem('d2')||'[]'),
+  water:       +localStorage.getItem('w2')||0,
+  wGoal:       +localStorage.getItem('wg2')||2000,
+  wLog:        JSON.parse(localStorage.getItem('wl2')||'[]'),
+  calIn:       +localStorage.getItem('ci2')||0,
+  calOut:      +localStorage.getItem('co2')||0,
+  foodLog:     JSON.parse(localStorage.getItem('fl2')||'[]'),
+  deficitGoal: +localStorage.getItem('dg2')||500,
+  appName:     localStorage.getItem('an2')||'Chumafit AI',
+  theme:       JSON.parse(localStorage.getItem('th2')||'{"accent":"#F59314","bg":"#1a1f0e","card":"#2a3015","border":"#43521D"}'),
+  editId:      null
+};
+
+function save() {
+  localStorage.setItem('h2',  JSON.stringify(S.habits));
+  localStorage.setItem('d2',  JSON.stringify(S.days));
+  localStorage.setItem('w2',  S.water);
+  localStorage.setItem('wg2', S.wGoal);
+  localStorage.setItem('wl2', JSON.stringify(S.wLog));
+  localStorage.setItem('ci2', S.calIn);
+  localStorage.setItem('co2', S.calOut);
+  localStorage.setItem('fl2', JSON.stringify(S.foodLog));
+  localStorage.setItem('dg2', S.deficitGoal);
+  localStorage.setItem('an2', S.appName);
+  localStorage.setItem('th2', JSON.stringify(S.theme));
+}
+
+function applyTheme(t) {
+  document.documentElement.style.setProperty('--accent', t.accent);
+  document.documentElement.style.setProperty('--bg',     t.bg);
+  document.documentElement.style.setProperty('--card',   t.card);
+  document.documentElement.style.setProperty('--border', t.border);
+  document.getElementById('accent-pick').value = t.accent;
+  document.getElementById('bg-pick').value     = t.bg;
+  document.getElementById('card-pick').value   = t.card;
+}
+
+function setAccent(v){ S.theme.accent=v; applyTheme(S.theme); save(); }
+function setBg(v)    { S.theme.bg=v;     applyTheme(S.theme); save(); }
+function setCard(v)  { S.theme.card=v; S.theme.border=v; applyTheme(S.theme); save(); }
+
+function setTheme(name) {
+  S.theme = {...THEMES[name]};
+  applyTheme(S.theme); save();
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function setAppName() {
+  const n = document.getElementById('app-name-inp').value.trim();
+  if(!n) return;
+  S.appName = n; save();
+  document.getElementById('app-title').textContent = n;
+  document.title = n;
+}
+
+function setDeficitGoal(v) {
+  if(v<1) return;
+  S.deficitGoal = v; save(); renderCal();
+  document.getElementById('deficit-goal-lbl').textContent = v;
+}
+
+function resetCal() {
+  if(confirm('¿Reiniciar calorías del día?')){ S.calIn=0; S.calOut=0; S.foodLog=[]; save(); renderCal(); }
+}
+function resetHabits() {
+  if(confirm('¿Reiniciar progreso de 21 días?')){ S.days=[]; S.habits=S.habits.map(h=>({...h,done:false})); save(); renderHabits(); }
+}
+function resetAll() {
+  if(confirm('¿Borrar TODOS los datos? Esto no se puede deshacer.')){ localStorage.clear(); location.reload(); }
+}
+
+function goTo(tab) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s-'+tab).classList.add('active');
+  document.getElementById('nb-'+tab).classList.add('active');
+}
+
+function renderHabits() {
+  document.getElementById('today-lbl').textContent = new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});
+  const days=S.days.length;
+  let g='';
+  for(let i=0;i<21;i++){const c=i<days?'done':i===days?'today':''; g+=`<div class="hd ${c}">${i+1}</div>`;}
+  document.getElementById('hgrid').innerHTML=g;
+  document.getElementById('cur-day').textContent=Math.min(days+1,21);
+  const pct=Math.round(days/21*100);
+  document.getElementById('cur-pct').textContent=pct+'%';
+  document.getElementById('mpbar').style.width=pct+'%';
+  document.getElementById('medal-card').style.display=days>=21?'block':'none';
+  document.getElementById('prog-card').style.display=days>=21?'none':'block';
+  let html='';
+  S.habits.forEach(h=>{
+    html+=`<div class="hrow">
+      <div class="hck ${h.done?'done':''}" onclick="toggleH(${h.id})">
+        ${h.done?'<svg width="12" height="12" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>':''}
+      </div>
+      <span class="hn">${h.name}</span>
+      <button class="hbtn" onclick="editH(${h.id})">✏️</button>
+      <button class="hbtn" onclick="delH(${h.id})">🗑️</button>
+    </div>`;
+  });
+  document.getElementById('hlist').innerHTML=html;
+  document.getElementById('day-btn').disabled=!(S.habits.length>0&&S.habits.every(h=>h.done))||days>=21;
+}
+
+function toggleH(id){ S.habits=S.habits.map(h=>h.id===id?{...h,done:!h.done}:h); save();renderHabits(); }
+function delH(id){ if(confirm('¿Eliminar?')){ S.habits=S.habits.filter(h=>h.id!==id); save();renderHabits(); } }
+function editH(id){ const h=S.habits.find(x=>x.id===id); if(!h)return; S.editId=id; document.getElementById('modal-title').textContent='Editar hábito'; document.getElementById('modal-inp').value=h.name; document.getElementById('modal-ov').classList.add('show'); }
+function openModal(){ S.editId=null; document.getElementById('modal-title').textContent='Nuevo hábito'; document.getElementById('modal-inp').value=''; document.getElementById('modal-ov').classList.add('show'); setTimeout(()=>document.getElementById('modal-inp').focus(),100); }
+function closeModal(){ document.getElementById('modal-ov').classList.remove('show'); }
+function confirmModal(){ const n=document.getElementById('modal-inp').value.trim(); if(!n)return; if(S.editId){ S.habits=S.habits.map(h=>h.id===S.editId?{...h,name:n}:h); }else{ S.habits.push({id:Date.now(),name:n,done:false}); } save();renderHabits();closeModal(); }
+function completeDay(){ if(!S.habits.every(h=>h.done))return; S.days.push(new Date().toISOString()); S.habits=S.habits.map(h=>({...h,done:false})); save();renderHabits(); }
+
+function renderCal() {
+  document.getElementById('cal-in').textContent=S.calIn;
+  document.getElementById('cal-out').textContent=S.calOut;
+  document.getElementById('cal-out-lbl').textContent=S.calOut;
+  const def=S.calOut-S.calIn;
+  const bdg=document.getElementById('def-bdg');
+  const fil=document.getElementById('def-fill');
+  bdg.textContent=(def>=0?'+':'')+def+' kcal';
+  bdg.className='bdg '+(def>=0?'pos':'neg');
+  fil.className='df '+(def>=0?'pos':'neg');
+  fil.style.width=Math.min(100,Math.abs(def)/S.deficitGoal*100)+'%';
+  document.getElementById('deficit-goal-lbl').textContent=S.deficitGoal;
+  const logEl=document.getElementById('food-log');
+  if(!S.foodLog.length){ logEl.innerHTML='<p style="text-align:center;color:#888;font-size:12px;padding:12px 0">Sin registros aún</p>'; return; }
+  let h='<h3 style="font-size:13px;font-weight:600;color:#aaa;margin-bottom:6px">Registro de hoy</h3>';
+  S.foodLog.forEach(m=>{
+    h+=`<div class="food-item"><div><div style="font-weight:500">${m.name}</div>
+    <div style="display:flex;gap:4px;margin-top:2px"><span class="pill pp">P:${m.protein}g</span><span class="pill pc">C:${m.carbs}g</span><span class="pill pf">G:${m.fat}g</span></div></div>
+    <span style="color:var(--accent);font-weight:600;font-size:12px">${m.kcal}kcal</span></div>`;
+  });
+  logEl.innerHTML=h;
+}
+
+function setManualCal() {
+  const v=parseInt(document.getElementById('manual-cal').value);
+  if(!v||v<0)return;
+  S.calOut=v; save(); renderCal();
+  document.getElementById('manual-cal').value='';
+}
+
+let lastMeal=null;
+async function sendChat() {
+  const inp=document.getElementById('chat-inp');
+  const txt=inp.value.trim(); if(!txt)return;
+  inp.value='';
+  const wrap=document.getElementById('chat-wrap');
+  wrap.innerHTML+=`<div class="msg user">${txt}</div>`;
+  wrap.innerHTML+=`<div class="msg ai" id="ai-typing"><div class="dots"><span></span><span></span><span></span></div></div>`;
+  wrap.scrollTop=wrap.scrollHeight;
+  try {
+    const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:`Eres un nutricionista. El usuario dice: "${txt}". Calcula calorías y macros. Responde SOLO con JSON sin markdown: {"name":"nombre","kcal":número,"protein":número,"carbs":número,"fat":número,"notes":"explicación breve en español"}`})});
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+    const match=data.result.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('Sin datos');
+    const meal=JSON.parse(match[0]);
+    lastMeal=meal;
+    document.getElementById('ai-typing').outerHTML=`<div class="msg ai">
+      <strong>${meal.name}</strong><span class="kcal">${meal.kcal} kcal</span>
+      <div style="display:flex;gap:4px;margin-bottom:6px"><span class="pill pp">P:${meal.protein}g</span><span class="pill pc">C:${meal.carbs}g</span><span class="pill pf">G:${meal.fat}g</span></div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:6px">${meal.notes}</div>
+      <button class="add-log-btn" onclick="addFromChat()">+ Agregar al registro</button></div>`;
+  } catch(e) {
+    document.getElementById('ai-typing').outerHTML=`<div class="msg ai" style="color:#f87171">Error: ${e.message}</div>`;
+  }
+  wrap.scrollTop=wrap.scrollHeight;
+}
+
+function addFromChat() {
+  if(!lastMeal)return;
+  S.foodLog.push(lastMeal); S.calIn+=lastMeal.kcal; save(); renderCal();
+  const wrap=document.getElementById('chat-wrap');
+  wrap.innerHTML+=`<div class="msg ai" style="color:#4ade80">✓ ${lastMeal.name} agregado</div>`;
+  wrap.scrollTop=wrap.scrollHeight;
+  lastMeal=null;
+}
+
+async function analyzePhoto(e) {
+  const file=e.target.files[0]; if(!file)return;
+  const prev=document.getElementById('food-prev');
+  const box=document.getElementById('ai-box');
+  const body=document.getElementById('ai-body');
+  prev.src=URL.createObjectURL(file); prev.style.display='block';
+  box.classList.add('show');
+  body.innerHTML='<div class="dots"><span></span><span></span><span></span></div> Analizando foto...';
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result.split(',')[1];
+    const mime=file.type||'image/jpeg';
+    try {
+      const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:'Analiza esta comida. Responde SOLO con JSON sin markdown: {"name":"nombre en español","kcal":número,"protein":gramos,"carbs":gramos,"fat":gramos,"notes":"descripción breve"}',imageBase64:b64,imageMime:mime})});
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      const match=data.result.match(/\{[\s\S]*\}/);
+      if(!match) throw new Error('Sin datos');
+      const meal=JSON.parse(match[0]);
+      body.innerHTML=`<div style="font-size:15px;font-weight:600;margin-bottom:4px">${meal.name}</div>
+        <div style="font-size:28px;font-weight:700;color:var(--accent);margin-bottom:6px">${meal.kcal} kcal</div>
+        <div style="display:flex;gap:5px;margin-bottom:6px"><span class="pill pp">P:${meal.protein}g</span><span class="pill pc">C:${meal.carbs}g</span><span class="pill pf">G:${meal.fat}g</span></div>
+        <div style="font-size:11px;color:#aaa;margin-bottom:8px">${meal.notes}</div>
+        <button class="log-add-btn" onclick='logMeal(${JSON.stringify(meal).replace(/'/g,"&#39;")})'>+ Agregar al registro</button>`;
+    } catch(e) {
+      body.innerHTML=`<div style="color:#f87171;font-size:12px">Error: ${e.message}</div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function logMeal(meal){ S.foodLog.push(meal); S.calIn+=meal.kcal; save(); renderCal(); document.getElementById('ai-box').classList.remove('show'); document.getElementById('food-prev').style.display='none'; document.getElementById('food-inp').value=''; }
+
+function renderWater() {
+  const pct=Math.min(100,Math.round(S.water/S.wGoal*100));
+  document.getElementById('wfill').style.height=pct+'%';
+  document.getElementById('wpct').textContent=pct+'%';
+  document.getElementById('wcurr').textContent=S.water;
+  document.getElementById('wgoal').textContent=S.wGoal;
+  document.getElementById('w-goal-lbl').textContent=S.wGoal+' ml';
+  document.getElementById('wslider').value=S.wGoal;
+  document.getElementById('wslider-lbl').textContent=S.wGoal+'ml';
+  document.getElementById('wpbar').style.width=pct+'%';
+  document.getElementById('water-goal-inp').value=S.wGoal;
+  document.getElementById('wlog').innerHTML=S.wLog.slice(-10).map(ml=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px 7px;font-size:10px;color:var(--accent)">+${ml}ml</span>`).join('');
+}
+function addW(ml){ S.water+=ml; S.wLog.push(ml); save(); renderWater(); }
+function setWGoal(v){ S.wGoal=v; document.getElementById('wslider-lbl').textContent=v+'ml'; save(); renderWater(); }
+function resetW(){ if(confirm('¿Reiniciar agua?')){ S.water=0;S.wLog=[]; save();renderWater(); } }
+
+// INIT
+applyTheme(S.theme);
+document.getElementById('app-title').textContent=S.appName;
+document.getElementById('app-name-inp').value=S.appName;
+document.getElementById('deficit-inp').value=S.deficitGoal;
+document.title=S.appName;
+renderHabits(); renderCal(); renderWater();
+document.getElementById('modal-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') confirmModal(); });
+</script>
+</body>
+</html>
