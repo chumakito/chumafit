@@ -701,6 +701,7 @@ function renderHabits(){
   const todayRec=S.days.find(d=>d.date===today)||{date:today,habitsDone:[],completed:false};
   const doneToday=todayRec.habitsDone||[];
   // FIX: allComplete solo si TODOS los hábitos fueron marcados Y el día completado
+  let rings='';
   for(let i=0;i<21;i++){
     const isFuture=i>completedCount,isToday=i===completedCount;
     let hd=i<completedCount?completedList[i]?.habitsDone||[]:isToday?doneToday:[];
@@ -866,7 +867,7 @@ async function sendChat(){
     const hdrs=await _proxyHeaders();
     const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:`Nutricionista. Historial:\n${history}\nÚltimo: "${txt}"\nSi menciona explícitamente bebidas pon los ml en waterMl, si NO menciona bebidas pon waterMl en 0.\nJSON: {"name":"nombre","kcal":número,"protein":número,"carbs":número,"fat":número,"notes":"breve español","waterMl":número}`})});
     const data=await res.json();if(data.error)throw new Error(data.error);
-    const match=data.result.match(/\{[\s\S]*?\}/);if(!match)throw new Error('Sin datos');
+    const _cleaned=(data.result||'').replace(/```(?:json)?\n?/g,'').trim();const match=_cleaned.match(/\{[\s\S]*\}/);if(!match)throw new Error('Sin datos');
     const meal=JSON.parse(match[0]);lastMeal=meal;S.chatHistory.push({role:'ai',content:`${meal.name}: ${meal.kcal}kcal`});
     const wNote=meal.waterMl>0?`<div style="font-size:11px;color:#60a5fa;margin-top:4px">💧 +${meal.waterMl}ml al contador</div>`:'';
     document.getElementById('ai-typing').outerHTML=`<div class="msg ai"><strong>${escHtml(meal.name)}</strong><span class="kcal">${meal.kcal} kcal</span><div style="display:flex;gap:4px;margin-bottom:4px"><span class="pill pp">P:${meal.protein||0}g</span><span class="pill pc">C:${meal.carbs||0}g</span><span class="pill pf">G:${meal.fat||0}g</span></div><div style="font-size:11px;color:#aaa;margin-bottom:4px">${escHtml(meal.notes)}</div>${wNote}<button class="add-log-btn" onclick="addFromChat()">+ Agregar al registro</button></div>`;
@@ -886,9 +887,9 @@ function analyzePhoto(e){
     const b64=ev.target.result.split(',')[1];const mime=file.type||'image/jpeg';
     try{
       const hdrs=await _proxyHeaders();
-      const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:'Analiza esta comida. JSON: {"name":"nombre","kcal":número,"protein":gramos,"carbs":gramos,"fat":gramos,"notes":"breve","waterMl":0}',imageBase64:b64,imageMime:mime})});
+      const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:'Analiza la imagen. Responde ÚNICAMENTE con JSON válido sin markdown ni texto extra. Formato: {"name":"nombre del plato","kcal":número,"protein":número,"carbs":número,"fat":número,"notes":"descripción breve en español","waterMl":0}',imageBase64:b64,imageMime:mime})});
       const data=await res.json();if(data.error)throw new Error(data.error);
-      const match=data.result.match(/\{[\s\S]*?\}/);if(!match)throw new Error('Sin datos');
+      const _cleaned=(data.result||'').replace(/```(?:json)?\n?/g,'').trim();const match=_cleaned.match(/\{[\s\S]*\}/);if(!match)throw new Error('Sin datos');
       const meal=JSON.parse(match[0]);
       body.innerHTML=`<div style="font-size:15px;font-weight:600;margin-bottom:4px">${escHtml(meal.name)}</div><div style="font-size:28px;font-weight:700;color:var(--accent)">${meal.kcal} kcal</div><div style="display:flex;gap:5px;margin:6px 0"><span class="pill pp">P:${meal.protein||0}g</span><span class="pill pc">C:${meal.carbs||0}g</span><span class="pill pf">G:${meal.fat||0}g</span></div><div style="font-size:11px;color:#aaa;margin-bottom:8px">${escHtml(meal.notes)}</div><button style="width:100%;padding:9px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer" onclick='logMeal(${JSON.stringify(meal).replace(/'/g,"&#39;")})'>+ Agregar</button>`;
     }catch(e){body.innerHTML=`<div style="color:#f87171;font-size:12px">Error: ${escHtml(e.message)}</div>`;}
@@ -1126,7 +1127,15 @@ function openModal(type,defaultVal){
     }
   },100);
 }
-function confirmHabitModal(){const n=document.getElementById('m-inp').value.trim();if(!n)return;if(S.editId){S.habits=S.habits.map(h=>h.id===S.editId?{...h,name:n}:h);S.editId=null;}else S.habits.push({id:Date.now(),name:n});syncData();renderHabits();closeModal();showToast('✓ Hábito guardado');}
+function confirmHabitModal(){
+  try{
+    const n=document.getElementById('m-inp')?.value?.trim();
+    if(!n){showToast('Escribe un nombre para el hábito');return;}
+    if(S.editId){S.habits=S.habits.map(h=>h.id===S.editId?{...h,name:n}:h);S.editId=null;}
+    else S.habits.push({id:Date.now(),name:n});
+    syncData();renderHabits();closeModal();showToast('✓ Hábito guardado');
+  }catch(e){showToast('Error: '+e.message);console.error('confirmHabitModal:',e);}
+}
 function confirmTxModal(){const desc=document.getElementById('m-desc').value.trim();const amount=+document.getElementById('m-amount').value;const cat=document.getElementById('m-cat').value;const date=document.getElementById('m-date').value;if(!desc||!amount){showToast('Completa todos los campos');return;}if(!S.finance)S.finance={transactions:[]};const tx={type:modalType,desc,amount,category:cat,date,time:new Date().toTimeString().slice(0,5)};S.finance.transactions.push(tx);syncData();renderFinance();checkBudgetAlerts(tx);cjRenderTracker();closeModal();showToast(`✓ ${modalType==='income'?'Ingreso':'Gasto'} guardado`);}
 function closeModal(){document.getElementById('modal-ov').classList.remove('show');modalType=null;}
 
