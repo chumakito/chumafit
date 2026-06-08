@@ -555,7 +555,8 @@ const THEMES={forest:{accent:'#F59314',bg:'#1a1f0e',card:'#2a3015',border:'#4352
 
 const getTZ=()=>localStorage.getItem('tz')||Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
 const todayKey=()=>{try{return new Date().toLocaleDateString('en-CA',{timeZone:getTZ()});}catch(e){return new Date().toISOString().slice(0,10);}};
-const fmtDate=d=>{try{return new Date(d+'T12:00').toLocaleDateString('es-CL',{day:'numeric',month:'short',timeZone:getTZ()});}catch(e){return d;}};
+const fmtDate=d=>{try{return new Date(d+'T12:00').toLocaleDateString('es-CL',{day:'numeric',month:'short',timeZone:getTZ()});}catch(e){return d;};};
+const fmt=n=>'$'+Math.round(Math.abs(n)).toLocaleString('es-CL');
 
 let currentUser=null,syncTimer=null,modalType=null,_filePicking=false;
 
@@ -931,7 +932,7 @@ async function sendFitChat(){
     const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:`Entrenador personal experto. Español.\n${getCtx()}\nHistorial:\n${hist}\nMensaje: "${txt}"\nRespuesta personalizada con emojis. Toma en cuenta el BMR y el déficit actual.`})});
     const data=await res.json();if(data.error)throw new Error(data.error);
     S.fitHistory.push({role:'ai',content:data.result.slice(0,80)});
-    document.getElementById('fit-typing').outerHTML=`<div class="msg ai">${data.result}</div>`;
+    document.getElementById('fit-typing').outerHTML=`<div class="msg ai">${escHtml(data.result).replace(/\n/g,'<br>')}</div>`;
   }catch(e){document.getElementById('fit-typing').outerHTML=`<div class="msg ai" style="color:#f87171">Error: ${escHtml(e.message)}</div>`;}
   wrap.scrollTop=wrap.scrollHeight;
 }
@@ -1136,7 +1137,20 @@ function confirmHabitModal(){
     syncData();renderHabits();closeModal();showToast('✓ Hábito guardado');
   }catch(e){showToast('Error: '+e.message);console.error('confirmHabitModal:',e);}
 }
-function confirmTxModal(){const desc=document.getElementById('m-desc').value.trim();const amount=+document.getElementById('m-amount').value;const cat=document.getElementById('m-cat').value;const date=document.getElementById('m-date').value;if(!desc||!amount){showToast('Completa todos los campos');return;}if(!S.finance)S.finance={transactions:[]};const tx={type:modalType,desc,amount,category:cat,date,time:new Date().toTimeString().slice(0,5)};S.finance.transactions.push(tx);syncData();renderFinance();checkBudgetAlerts(tx);cjRenderTracker();closeModal();showToast(`✓ ${modalType==='income'?'Ingreso':'Gasto'} guardado`);}
+function confirmTxModal(){
+  try{
+    const desc=document.getElementById('m-desc').value.trim();
+    const amount=+document.getElementById('m-amount').value;
+    const cat=document.getElementById('m-cat').value;
+    const date=document.getElementById('m-date').value;
+    if(!desc||!amount){showToast('Completa todos los campos');return;}
+    if(!S.finance)S.finance={transactions:[]};
+    const tx={type:modalType,desc,amount,category:cat,date,time:new Date().toTimeString().slice(0,5)};
+    S.finance.transactions.push(tx);
+    syncData();renderFinance();checkBudgetAlerts(tx);cjRenderTracker();closeModal();
+    showToast(`✓ ${modalType==='income'?'Ingreso':'Gasto'} guardado`);
+  }catch(e){showToast('Error: '+e.message);console.error('confirmTxModal:',e);}
+}
 function closeModal(){document.getElementById('modal-ov').classList.remove('show');modalType=null;}
 
 // ── SETTINGS ─────────────────────────────────────────────────
