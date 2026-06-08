@@ -1027,15 +1027,20 @@ function cjShowView(view){
   document.getElementById('cj-setup-view').style.display=view==='setup'?'block':'none';
   const tT=document.getElementById('cj-tab-tracker'),tS=document.getElementById('cj-tab-setup');
   if(view==='tracker'){tT.className='cj-tab-btn cj-tab-active';tS.className='cj-tab-btn cj-tab-idle';cjRenderTracker();}
-  else{tS.className='cj-tab-btn cj-tab-active';tT.className='cj-tab-btn cj-tab-idle';cjRenderSetup();}
+  else{
+    tS.className='cj-tab-btn cj-tab-active';tT.className='cj-tab-btn cj-tab-idle';
+    // Pre-fill SOLO al abrir el tab, no en cada re-render
+    const wb=S.finance?.weeklyBudget;
+    if(wb?.setupDone&&wb.rules?.length>0){
+      cjIncomes=[{name:'Ingreso semanal',value:wb.income}];
+      cjExpenses=wb.rules.map(r=>({name:r.name,value:r.type==='percent'?r.pct:r.budget,type:r.type,freq:r.freq||'semanal',category:r.category}));
+    }
+    cjRenderSetup();
+  }
 }
 function cjRender(){cjInit();cjShowView('tracker');}
 function cjRenderSetup(){
-  const wb=S.finance?.weeklyBudget;
-  if(wb?.setupDone&&wb.rules?.length>0){
-    cjIncomes=[{name:'Ingreso semanal',value:wb.income}];
-    cjExpenses=wb.rules.map(r=>({name:r.name,value:r.type==='percent'?r.pct:r.budget,type:r.type,freq:r.freq||'semanal',category:r.category}));
-  }
+  // Solo renderiza — NO recarga desde reglas guardadas
   const ic=document.getElementById('cj-incomes');ic.innerHTML='';
   cjIncomes.forEach((inc,i)=>{
     const d=document.createElement('div');d.className='cj-row cj-inc';
