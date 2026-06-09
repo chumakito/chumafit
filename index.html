@@ -866,7 +866,8 @@ async function sendChat(){
   const history=S.chatHistory.slice(-8).map(m=>`${m.role==='user'?'U':'IA'}: ${m.content}`).join('\n');
   try{
     const hdrs=await _proxyHeaders();
-    const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:`Historial:\n${history}\nAlimento: "${txt}"\nDevuelve SOLO este JSON (sin texto extra): {"name":"nombre del plato","kcal":número,"protein":número,"carbs":número,"fat":número,"notes":"descripción breve en español","waterMl":número si es bebida si no 0}`})});
+    const _prof=S.profile?.weight?{weight:+S.profile.weight,height:+S.profile.height,age:+S.profile.age,sex:S.profile.sex,goal:S.profile.goal,bmr:calcBMR(),deficit:S.deficitGoal}:null;
+    const res=await fetch(PROXY,{method:'POST',headers:hdrs,body:JSON.stringify({text:`Historial:\n${history}\nAlimento: "${txt}"\nDevuelve SOLO este JSON (sin texto extra): {"name":"nombre del plato","kcal":número,"protein":número,"carbs":número,"fat":número,"notes":"descripción breve en español","waterMl":número si es bebida si no 0}`,profile:_prof})});
     const data=await res.json();if(data.error)throw new Error(data.error);
     const _cleaned=(data.result||'').replace(/```(?:json|JSON)?\s*/g,'').replace(/```/g,'').trim();const match=_cleaned.match(/\{[\s\S]*\}/);if(!match){console.error('AI raw:',data.result);throw new Error('La IA no devolvió datos estructurados. Intenta de nuevo.');}let _parsed;try{_parsed=JSON.parse(match[0]);}catch(pe){throw new Error('Formato inválido, intenta de nuevo.');}
     const meal=_parsed;lastMeal=meal;S.chatHistory.push({role:'ai',content:`${meal.name}: ${meal.kcal}kcal`});
