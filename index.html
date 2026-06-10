@@ -100,6 +100,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:#
 .rings-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:10px}
 .ring-wrap{display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:2px}
 .ring-svg{width:100%;aspect-ratio:1}
+.ring-date{font-size:7px;color:#666;text-align:center;line-height:1;margin-top:1px;letter-spacing:-.2px}
+.ring-wrap:hover .ring-date{color:var(--accent)}
 .pbar{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;margin:6px 0}
 .pf{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
 .hrow{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
@@ -655,11 +657,28 @@ async function syncData(){
   },800);
 }
 
+function autoCompletePastDays(today){
+  if(!S.habits?.length)return;
+  const habitIds=S.habits.map(h=>h.id);
+  let advanced=false;
+  (S.days||[]).forEach(rec=>{
+    if(rec.date<today&&!rec.completed&&rec.habitsDone?.length){
+      if(habitIds.every(id=>rec.habitsDone.includes(id))){
+        const doneCount=S.days.filter(d=>d.completed).length;
+        rec.completed=true;rec.slot=doneCount;advanced=true;
+      }
+    }
+  });
+  if(advanced){syncData();showToast('📅 Días anteriores completados automáticamente');}
+}
+
 function checkDayReset(){
   const today=todayKey();
   if(S.calDate!==today){
     if(S.calIn>0||S.calOut>0){if(!S.calHistory)S.calHistory=[];S.calHistory.push({date:S.calDate,in:S.calIn,out:S.calOut});if(S.calHistory.length>30)S.calHistory.shift();}
-    S.calIn=0;S.calOut=0;S.foodLog=[];S.water=0;S.wLog=[];S.calDate=today;S.chatHistory=[];syncData();
+    S.calIn=0;S.calOut=0;S.foodLog=[];S.water=0;S.wLog=[];S.calDate=today;S.chatHistory=[];
+    autoCompletePastDays(today);
+    syncData();
   }
 }
 
@@ -707,7 +726,13 @@ function renderHabits(){
     const isFuture=i>completedCount,isToday=i===completedCount;
     let hd=i<completedCount?completedList[i]?.habitsDone||[]:isToday?doneToday:[];
     const allDone=i<completedCount&&completedList[i]?.completed&&habitIds.length>0&&habitIds.every(id=>hd.includes(id));
-    rings+=`<div class="ring-wrap" style="${isFuture?'pointer-events:none':''}" onclick="${!isFuture?`openDayModal(${i})`:''}"><svg class="ring-svg" viewBox="0 0 36 36">${buildRingSVG(hd,habitIds,allDone,isToday,isFuture,i+1)}</svg></div>`;
+    let rdStr='';
+    try{
+      let rd=i<completedCount&&completedList[i]?.date?new Date(completedList[i].date+'T12:00'):new Date(new Date().setDate(new Date().getDate()+(i-completedCount)));
+      rdStr=rd.toLocaleDateString('es-CL',{day:'numeric',month:'numeric',timeZone:getTZ()});
+    }catch(e){}
+    const dLbl=!isFuture&&rdStr?'<div class="ring-date">'+rdStr+'</div>':'';
+    rings+='<div class="ring-wrap" style="'+(isFuture?'pointer-events:none;opacity:.35':'')+'" onclick="'+(isFuture?'':'openDayModal('+i+')')+'"><svg class="ring-svg" viewBox="0 0 36 36">'+buildRingSVG(hd,habitIds,allDone,isToday,isFuture,i+1)+'</svg>'+dLbl+'</div>';
   }
   document.getElementById('rings-grid').innerHTML=rings;
   const pct=Math.round(completedCount/21*100);
