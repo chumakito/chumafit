@@ -597,7 +597,7 @@ sb.auth.onAuthStateChange((event,session)=>{
     currentUser=session.user;
     document.getElementById('auth-screen').classList.add('hidden');
     updateUserUI();
-    if(!_appReady){_appReady=true;loadData().then(()=>{checkDayReset();renderAll();});}
+    if(!_appReady){_appReady=true;loadData().then(()=>{checkDayReset();autoCompletePastDays(todayKey());ensureTodayRecord();renderAll();scheduleMidnightReset();});}
   } else if(event==='SIGNED_OUT'&&!_filePicking){
     currentUser=null;S=defaultState();_appReady=false;
     document.getElementById('auth-screen').classList.remove('hidden');
@@ -609,7 +609,7 @@ sb.auth.getSession().then(r=>{
     currentUser=r.data.session.user;_appReady=true;
     document.getElementById('auth-screen').classList.add('hidden');
     updateUserUI();
-    loadData().then(()=>{checkDayReset();renderAll();});
+    loadData().then(()=>{checkDayReset();autoCompletePastDays(todayKey());ensureTodayRecord();renderAll();scheduleMidnightReset();});
   }
 });
 
@@ -658,18 +658,49 @@ async function syncData(){
 }
 
 function autoCompletePastDays(today){
-  if(!S.habits?.length)return;
-  const habitIds=S.habits.map(h=>h.id);
+  // Cierra todos los días anteriores a hoy automáticamente
+  // (sin importar si se completaron todos los hábitos o no)
   let advanced=false;
   (S.days||[]).forEach(rec=>{
-    if(rec.date<today&&!rec.completed&&rec.habitsDone?.length){
-      if(habitIds.every(id=>rec.habitsDone.includes(id))){
-        const doneCount=S.days.filter(d=>d.completed).length;
-        rec.completed=true;rec.slot=doneCount;advanced=true;
-      }
+    if(rec.date<today&&!rec.completed){
+      const doneCount=S.days.filter(d=>d.completed).length;
+      rec.completed=true;rec.slot=doneCount;advanced=true;
     }
   });
-  if(advanced){syncData();showToast('📅 Días anteriores completados automáticamente');}
+  if(advanced)syncData();
+}
+
+// Calcula los ms que faltan para medianoche en la zona horaria del usuario
+function msUntilMidnight(){
+  try{
+    const tz=getTZ();
+    const now=new Date();
+    const parts=now.toLocaleString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).split(':').map(Number);
+    const h=parts[0]===24?0:parts[0],m=parts[1],s=parts[2];
+    return((24*3600)-(h*3600+m*60+s))*1000;
+  }catch(e){
+    // Fallback: medianoche según hora local del navegador
+    const now=new Date();
+    const midnight=new Date(now);midnight.setHours(24,0,0,0);
+    return midnight-now;
+  }
+}
+
+// Programa el reset automático a medianoche (se repite cada día)
+function scheduleMidnightReset(){
+  const ms=msUntilMidnight();
+  setTimeout(()=>{
+    const today=todayKey();
+    // Cerrar el día anterior
+    autoCompletePastDays(today);
+    // Resetear contadores del nuevo día
+    checkDayReset();
+    // Re-renderizar todo
+    renderAll();
+    showToast('🌅 Nuevo día — ¡a por los hábitos!');
+    // Programar el siguiente reset
+    scheduleMidnightReset();
+  },ms+500); // +500ms para asegurar que el cambio de día ya ocurrió
 }
 
 function checkDayReset(){
@@ -680,6 +711,7 @@ function checkDayReset(){
     autoCompletePastDays(today);
     syncData();
   }
+  ensureTodayRecord();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────
@@ -691,6 +723,15 @@ function setBg(v){S.theme.bg=v;applyTheme(S.theme);syncData();}
 function setCard(v){S.theme.card=v;S.theme.border=v;applyTheme(S.theme);syncData();}
 function setTheme(n,e){S.theme={...THEMES[n]};applyTheme(S.theme);syncData();document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');}
 function goTo(tab){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));document.getElementById('s-'+tab).classList.add('active');document.getElementById('nb-'+tab).classList.add('active');if(tab==='finance'){renderFinance();cjRender();}}
+// Asegura que exista un registro para hoy (para que medianoche pueda cerrarlo)
+function ensureTodayRecord(){
+  const today=todayKey();
+  if(!S.days)S.days=[];
+  if(!S.days.find(d=>d.date===today)){
+    S.days.push({date:today,habitsDone:[],completed:false});
+  }
+}
+
 function renderAll(){applyTheme(S.theme);document.getElementById('app-title').textContent=S.appName||'Chumafit AI';renderHabits();renderCal();renderWater();updateBMI();loadProfileUI();renderFinance();initTZ();}
 function saveTZ(){const tz=document.getElementById('tz-select').value;localStorage.setItem('tz',tz);document.getElementById('tz-detected').textContent=tz;showToast('✓ Zona horaria guardada');}
 function initTZ(){const tz=getTZ();const sel=document.getElementById('tz-select');if(sel)sel.value=tz;document.getElementById('tz-detected').textContent=tz;}
